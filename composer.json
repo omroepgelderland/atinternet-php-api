@@ -1,0 +1,28 @@
+{
+    "name": "omroepgelderland/atinternet-php-api",
+    "description": "PHP implementation for the AT Internet analytics data API.",
+    "type": "library",
+		"keywords": [
+			"at internet",
+			"piano analytics"
+		],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Remy Glaser",
+            "email": "rglaser@gld.nl"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+		"php": "^7.1"
+	},
+    "autoload": {
+        "psr-4": {
+            "atinternet_php_api\\": "src/"
+        },
+        "files": [
+            "src/exceptions.php"
+        ]
+    }
+}
