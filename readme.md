@@ -1,4 +1,4 @@
-# At Internet PHP client
+# At Internet (piano analytics) PHP client
 
 This library enables you to get queries from the AT Internet Data API v3.
 This is a third-party library.
@@ -20,7 +20,7 @@ composer installed.
 Once composer is installed, execute the following command in your project root to install this library:
 
 ```sh
-composer require …
+composer require omroepgelderland/atinternet-php-api
 ```
 
 Finally, be sure to include the autoloader:

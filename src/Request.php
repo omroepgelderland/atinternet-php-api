@@ -20,6 +20,15 @@ namespace atinternet_php_api;
  */
 class Request implements \JsonSerializable {
 	
+	/**
+	 * Maximum number of results in one page.
+	 */
+	const MAX_PAGE_RESULTS = 10000;
+	/**
+	 * Maximum number of pages in a request.
+	 */
+	const MAX_PAGES = 20;
+	
 	private Client $client;
 	/** @var int[] */
 	private array $sites;
@@ -35,7 +44,6 @@ class Request implements \JsonSerializable {
 	private int $max_results;
 	private int $page_num;
 	private bool $ignore_null_properties;
-	private array $pages;
 	private ResultRowList $result_rows;
 	private \stdClass $rowcount_raw;
 	private \stdClass $total_raw;
@@ -52,12 +60,11 @@ class Request implements \JsonSerializable {
 	 * @param \atinternet_php_api\filter\Filter|null $params['property_filter'] Filters on properties (optional)
 	 * @param \atinternet_php_api\Evolution|null $params['evolution'] Not implemented yet (optional)
 	 * @param array $params['sort'] List of properties/metrics according to which the results will be sorted (optional).
-	 * @param int $params['max_results'] Maximum number of results per page (default and maximum: 10000)
+	 * @param int $params['max_results'] Maximum number of results (default and maximum: 200000 (200k))
 	 * @param bool $params['ignore_null_properties'] When set to true, null values will not be included in the results (default false)
 	 */
 	public function __construct( Client $client, $params ) {
 		$this->client = $client;
-		$this->pages = [];
 		$this->page_num = 1;
 		
 		$this->sites = $params['sites'];
@@ -83,25 +90,13 @@ class Request implements \JsonSerializable {
 		if ( array_key_exists('max_results', $params) ) {
 			$this->max_results = $params['max_results'];
 		} else {
-			$this->max_results = 10000;
+			$this->max_results = self::MAX_PAGES * self::MAX_PAGE_RESULTS;
 		}
 		if ( array_key_exists('ignore_null_properties', $params) ) {
 			$this->ignore_null_properties = $params['ignore_null_properties'];
 		} else {
 			$this->ignore_null_properties = false;
 		}
-	}
-	
-	/**
-	 * Clears cached results.
-	 * Data requests after calling this function will be requested from the API.
-	 */
-	public function clear(): void {
-		$this->pages = [];
-		$this->page_num = 1;
-		unset($this->result_rows);
-		unset($this->rowcount_raw);
-		unset($this->total_raw);
 	}
 	
 	public function jsonSerialize(): array {
@@ -113,7 +108,7 @@ class Request implements \JsonSerializable {
 			'period' => [
 				'p1' => $this->period
 			],
-			'max-results' => $this->max_results,
+			'max-results' => $this->get_max_page_results(),
 			'page-num' => $this->page_num,
 			'options' => [
 				'ignore_null_properties' => $this->ignore_null_properties
@@ -175,16 +170,15 @@ class Request implements \JsonSerializable {
 	
 	/**
 	 * Execute a data query. Only one page of results is returned. This page may not include all data.
-	 * Server responses are cached in this object. Call Request::clear() to clear the cache.
 	 * Use ATInternet::get_result_pages() to get a more complete result.
 	 * Use ATInternet::get_result_rows() to get results without having to deal with paging.
 	 * https://developers.atinternet-solutions.com/api-documentation/v3/#getdata
 	 * @return \stdClass
 	 */
 	public function get_result_page( int $page_num ): \stdClass {
+		// In a previous version pages where cached in the object. This causes memory errors.
 		$this->page_num = $page_num;
-		$this->pages[$page_num] ??= $this->client->request('getData', $this);
-		return $this->pages[$page_num];
+		return $this->client->request('getData', $this);
 	}
 	
 	/**
@@ -211,7 +205,7 @@ class Request implements \JsonSerializable {
 	}
 	
 	/**
-	 * Returns the number of results for a query.
+	 * Returns the number of results for a query. max_results is ignored.
 	 * Server responses are cached in this object. Call Request::clear() to clear the cache.
 	 * https://developers.atinternet-solutions.com/api-documentation/v3/#getrowcount
 	 * @return int
@@ -221,7 +215,7 @@ class Request implements \JsonSerializable {
 	}
 	
 	/**
-	 * Get the totals for each metric in a request.
+	 * Get the totals for each metric in a request. max_results is ignored.
 	 * Returns the entire response object from the API.
 	 * Server responses are cached in this object. Call Request::clear() to clear the cache.
 	 * https://developers.atinternet-solutions.com/api-documentation/v3/#gettotal
@@ -246,6 +240,24 @@ class Request implements \JsonSerializable {
 			}
 		}
 		return $data;
+	}
+	
+	/**
+	 * Get the maximum number of results for the current page.
+	 * @return int
+	 */
+	private function get_max_page_results(): int {
+		return max(0,min(self::MAX_PAGE_RESULTS, $this->max_results-self::MAX_PAGE_RESULTS*($this->page_num-1)));
+	}
+	
+	/**
+	 * Returns true if the current page is the page after the last page that contains results.
+	 * @param int $page_num The current page.
+	 * @return bool
+	 */
+	public function is_after_last_page( int $page_num ): bool {
+		$this->page_num = $page_num;
+		return $this->get_max_page_results() === 0;
 	}
 	
 }

@@ -21,7 +21,6 @@ class ResultPageList implements \Iterator {
 	
 	private Request $request;
 	private int $page_num;
-	private bool $valid;
 	
 	/**
 	 * 
@@ -30,12 +29,10 @@ class ResultPageList implements \Iterator {
 	public function __construct( Request $request ) {
 		$this->request = $request;
 		$this->page_num = 1;
-		$this->valid = true;
 	}
 
 	public function current(): \stdClass {
 		$data = $this->request->get_result_page($this->page_num);
-		$this->valid = count($data->DataFeed->Rows) > 0;
 		return $data;
 	}
 	
@@ -49,10 +46,9 @@ class ResultPageList implements \Iterator {
 	
 	public function rewind(): void {
 		$this->page_num = 1;
-		$this->valid = true;
 	}
 	
 	public function valid(): bool {
-		return $this->valid;
+		return !$this->request->is_after_last_page($this->page_num);
 	}
 }
