@@ -100,6 +100,15 @@ class FilterEndpoint implements Filter {
 	 * Filter for strings
 	 */
 	public const NOT_ENDS_WITH = '$nend';
+
+	/**
+	 * Compare a datetime field to the period of the analysis.
+	 * Possible expressions:
+	 * start: Is equal to the start of the time period
+	 * end: Is equal to the end of the period.
+	 * all: Is equal to the time period.
+	 */
+	public const PERIOD = '$period';
 	
 	private string $field;
 	private string $operator;
@@ -109,7 +118,7 @@ class FilterEndpoint implements Filter {
 	 * 
 	 * @param string $field Property or metric to compare.
 	 * @param string $operator Comparison operator.
-	 * @param mixed $expression Comparison expression (integer, string, datum or array)
+	 * @param mixed $expression Comparison expression (integer, string, date or array)
 	 */
 	public function __construct( string $field, string $operator, $expression ) {
 		$this->field = $field;

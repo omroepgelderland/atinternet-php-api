@@ -21,25 +21,41 @@ class DayPeriod implements AbsolutePeriod {
 	
 	private \DateTime $start;
 	private \DateTime $end;
+	private bool $include_time;
 	
 	/**
 	 * 
 	 * @param \DateTime $start
 	 * @param \DateTime $end
+	 * @param bool $include_time Whether to include the time values of the start
+	 * and end times (default false).
 	 */
-	public function __construct( \DateTime $start, \DateTime $end ) {
+	public function __construct( \DateTime $start, \DateTime $end, bool $include_time = false ) {
 		$this->start = $start;
 		$this->end = $end;
+		$this->include_time = $include_time;
 	}
 	
 	public function jsonSerialize(): array {
+		$format = $this->include_time ? 'Y-m-d\TH:i:s' : 'Y-m-d';
 		return [
 			[
 				'type' => 'D',
-				'start' => $this->start->format('Y-m-d'),
-				'end' => $this->end->format('Y-m-d')
+				'start' => $this->start->format($format),
+				'end' => $this->end->format($format)
 			]
 		];
+	}
+
+	/**
+	 * Creates a period for only the current day.
+	 */
+	public static function today(): DayPeriod {
+		return new self(
+			(new \DateTime())->setTime(0, 0, 0, 0),
+			new \DateTime(),
+			false
+		);
 	}
 	
 }

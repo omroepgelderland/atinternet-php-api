@@ -29,7 +29,10 @@ abstract class FilterList implements Filter {
 	/** @var Filter[] */
 	private array $filters;
 	
-	public function __construct( ...$filters ) {
+	/**
+	 * @param Filter $filters,...
+	 */
+	public function __construct( Filter ...$filters ) {
 		$this->filters = $filters;
 	}
 	
