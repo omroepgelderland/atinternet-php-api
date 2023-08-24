@@ -2,10 +2,10 @@
     "name": "omroepgelderland/atinternet-php-api",
     "description": "PHP implementation for the AT Internet analytics data API.",
     "type": "library",
-		"keywords": [
-			"at internet",
-			"piano analytics"
-		],
+        "keywords": [
+            "at internet",
+            "piano analytics"
+        ],
     "license": "MIT",
     "authors": [
         {
@@ -15,8 +15,8 @@
     ],
     "minimum-stability": "dev",
     "require": {
-		"php": "^7.4"
-	},
+        "php": "^8.0"
+    },
     "autoload": {
         "psr-4": {
             "atinternet_php_api\\": "src/"

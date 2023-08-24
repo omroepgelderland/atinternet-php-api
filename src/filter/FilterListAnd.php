@@ -19,7 +19,7 @@ namespace atinternet_php_api\filter;
  * https://developers.atinternet-solutions.com/api-documentation/v3/#filter
  */
 class FilterListAnd extends FilterList {
-	
-	protected const OPERATOR = '$AND';
-	
+    
+    protected const OPERATOR = '$AND';
+    
 }

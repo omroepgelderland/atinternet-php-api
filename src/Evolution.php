@@ -17,11 +17,11 @@ namespace atinternet_php_api;
 /**
  * @todo implement
  */
-class Evolution implements JsonSerializable {
-	
-	public function __construct() {
-		throw new NotImplementedException();
-	}
-	
-	public function jsonSerialize(): array {}
+class Evolution implements \JsonSerializable {
+    
+    public function __construct() {
+        throw new NotImplementedException();
+    }
+    
+    public function jsonSerialize(): mixed {}
 }

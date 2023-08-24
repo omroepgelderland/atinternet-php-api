@@ -5,7 +5,7 @@ This is a third-party library.
 A subscription to AT Internet is required.
 
 ## Requirements ##
-* [PHP 7.4 or higher](https://www.php.net/)
+* [PHP 8.x](https://www.php.net/)
 
 ## Installation ##
 
@@ -32,7 +32,6 @@ require_once '/path/to/your-project/vendor/autoload.php';
 ## Example
 
 ```php
-
 require_once __DIR__.'/vendor/autoload.php';
 
 use \atinternet_php_api\filter\FilterListAnd;
@@ -43,46 +42,46 @@ $at = new \atinternet_php_api\Client($access_key, $secret_key);
 
 // Create data request parameters.
 $request = new \atinternet_php_api\Request($at, [
-	'sites' => [$site_id],
-	'columns' => [
-		'date',
-		'article_id',
-		'site_id',
-		'domain',
-		'platform',
-		'device_type',
-		'os_group',
-		'm_unique_visitors',
-		'm_visits',
-		'm_page_loads'
-	],
-	'period' => new \atinternet_php_api\period\DayPeriod(
-		new \DateTime('2022-06-01'),
-		new \DateTime('2022-06-01')
-	),
-	'sort' => [
-		'-m_page_loads'
-	],
-	'property_filter' => new FilterListAnd(
-		new FilterEndpoint(
-			'article_id',
-			FilterEndpoint::IS_EMPTY,
-			false
-		),
-		new FilterEndpoint(
-			'domain',
-			FilterEndpoint::CONTAINS,
-			[
-				'example.nl',
-				'www.example.nl'
-			]
-		)
-	)
+    'sites' => [$site_id],
+    'columns' => [
+        'date',
+        'article_id',
+        'site_id',
+        'domain',
+        'platform',
+        'device_type',
+        'os_group',
+        'm_unique_visitors',
+        'm_visits',
+        'm_page_loads'
+    ],
+    'period' => new \atinternet_php_api\period\DayPeriod(
+        new \DateTime('2023-06-01'),
+        new \DateTime('2023-06-01')
+    ),
+    'sort' => [
+        '-m_page_loads'
+    ],
+    'property_filter' => new FilterListAnd(
+        new FilterEndpoint(
+            'article_id',
+            FilterEndpoint::IS_EMPTY,
+            false
+        ),
+        new FilterEndpoint(
+            'domain',
+            FilterEndpoint::CONTAINS,
+            [
+                'example.nl',
+                'www.example.nl'
+            ]
+        )
+    )
 ]);
 
 // All results
 foreach ( $request->get_result_rows() as $item ) {
-	var_dump($item);
+    var_dump($item);
 }
 
 // Number of results
@@ -90,5 +89,4 @@ var_dump($request->get_rowcount());
 
 // Cumulative metrics for all resulting rows
 var_dump($request->get_total());
-
 ```
