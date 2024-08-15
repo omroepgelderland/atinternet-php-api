@@ -15,7 +15,10 @@
     ],
     "minimum-stability": "dev",
     "require": {
-        "php": "^8.0"
+        "php": "^8.0",
+        "ext-curl": "*",
+        "ext-date": "*",
+        "ext-json": "*"
     },
     "autoload": {
         "psr-4": {
