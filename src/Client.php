@@ -2,20 +2,54 @@
 /**
  * Copyright 2023 Omroep Gelderland
  * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  * 
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  * 
  * @author Remy Glaser <rglaser@gld.nl>
- * @package atinternet_php_api
  */
 
 namespace atinternet_php_api;
 
 /**
  * Main API class.
+ * 
+ * @phpstan-type APIResponseType object{
+ *     DataFeed?: object{
+ *         Columns: list<object{
+ *             Category: string,
+ *             Name: string,
+ *             Type: string,
+ *             CustomerType: string,
+ *             Label: string,
+ *             Description: string,
+ *             Filterable: bool
+ *         }>,
+ *         Rows: list<object>,
+ *         Context: object
+ *     },
+ *     RowCounts?: list<object{
+ *         RowCount: int
+ *     }>
+ * }
+ * @phpstan-type APIErrorResponseType object{
+ *     ErrorMessage?: string,
+ *     ErrorType?: string
+ * }
  */
 class Client {
     
@@ -24,7 +58,7 @@ class Client {
     
     /**
      * Construct a new API connection.
-     * @param string $access_key Access key provided by AT Internet.
+     * @param string $access_key Access key provided by Piano analytics.
      * @param string $secret_key Secret key.
      */
     public function __construct( string $access_key, string $secret_key ) {
@@ -35,14 +69,14 @@ class Client {
     /**
      * Execute an API request.
      * @param string $method API method.
-     * @param Request|array $request JSON-serializable request object.
-     * @return \stdClass API response.
-     * @throws ATInternetError
+     * @param Request|array<mixed> $request JSON-serializable request object.
+     * @return APIResponseType API response.
+     * @throws APIError
      */
-    public function request( string $method, Request|array $request ): \stdClass {
+    public function request( string $method, Request|array $request ): object {
         $ch = curl_init();
         if ( $ch === false ) {
-            throw new ATInternetError('curl error');
+            throw new APIError('curl error');
         }
         try {
             $res = curl_setopt_array($ch, [
@@ -56,48 +90,47 @@ class Client {
                 CURLOPT_HTTPHEADER => $this->get_headers()
             ]);
             if ( $res === false ) {
-                throw new ATInternetError('curl error');
+                throw new APIError('curl error');
             }
-            $curl_data = curl_exec($ch);
-            $response_code = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-            if ( $response_code >= 400 ) {
-                throw new ATInternetError(sprintf('HTTP error %d', $response_code));
+            $response_raw = \curl_exec($ch);
+            if ( $response_raw === false ) {
+                throw new APIError(curl_error($ch), curl_errno($ch));
             }
-            if ( $curl_data === false ) {
-                throw new ATInternetError(curl_error($ch), curl_errno($ch));
-            }
-            $response = json_decode($curl_data);
-            if ( $response === null ) {
-                throw new ATInternetError($curl_data);
-            }
-            if ( isset($response->ErrorCode) ) {
-                $error_code = $response->ErrorCode;
+            /**
+             * @var APIResponseType|APIErrorResponseType|null
+             */
+            $response = json_decode($response_raw);
+            $http_status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+
+            $error_message = curl_error($ch);
+            $error_type = null;
+
+            if ( isset($response->ErrorMessage) ) {
                 $error_message = $response->ErrorMessage;
-                $error_name = $response->ErrorName;
-                switch ( $error_name ) {
-                    case 'InvalidSort':
-                        throw new InvalidSort($error_message, $error_code);
-                    case 'InvalidMaxResults':
-                        throw new InvalidMaxResults($error_message, $error_code);
-                    case 'DataNotReady':
-                        throw new DataNotReady($error_message, $error_code);
-                    case 'InvalidPeriod':
-                        throw new InvalidPeriod($error_message, $error_code);
-                    case 'InvalidSpace':
-                        throw new InvalidSpace($error_message, $error_code);
-                    default:
-                        throw new ATInternetError($error_message, $error_code);
-                }
+            }
+            if ( isset($response->ErrorType) ) {
+                $error_type = $response->ErrorType;
+            }
+
+            if ( $http_status >= 400 || isset($response->ErrorMessage) || isset($response->ErrorType) ) {
+                $error_message = isset($error_type) ? "{$error_type}: {$error_message}" : $error_message;
+                $e = new APIError($error_message, $http_status);
+                $e->type = $error_type;
+                throw $e;
+            }
+            if ( $response === null ) {
+                throw new APIError($response_raw, $http_status);
             }
         } finally {
             curl_close($ch);
         }
+        /** @var APIResponseType */
         return $response;
     }
     
     /**
      * Returns the headers for API requests.
-     * @return array
+     * @return list<string>
      */
     private function get_headers(): array {
         return [

@@ -1,8 +1,8 @@
-# At Internet (piano analytics) PHP client
+# Piano analytics (formerly ‘At Internet’) PHP client
 
-This library enables you to get queries from the AT Internet Data API v3.
+This library enables you to get queries from the Piano Analytics Reporting API v3.
 This is a third-party library.
-A subscription to AT Internet is required.
+A subscription to Piano Analytics is required.
 
 ## Requirements ##
 * [PHP 8.x](https://www.php.net/)

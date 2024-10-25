@@ -2,14 +2,25 @@
 /**
  * Copyright 2023 Omroep Gelderland
  * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  * 
- * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  * 
  * @author Remy Glaser <rglaser@gld.nl>
- * @package atinternet_php_api
  */
 
 namespace atinternet_php_api;
@@ -17,6 +28,45 @@ namespace atinternet_php_api;
 /**
  * The request object contains the parameters for a data query.
  * Server responses are cached in this object.
+ * 
+ * @phpstan-type JSONType array{
+ *     space: array{
+ *         s: list<int>
+ *     },
+ *     columns: list<string>,
+ *     period: array{
+ *         p1: period\Period,
+ *         p2?: period\Period
+ *     },
+ *     max-results: int,
+ *     page-num: int,
+ *     options: array{
+ *         ignore_null_properties: bool
+ *     },
+ *     filter?: FormattedFiltersType,
+ *     evo?: Evolution,
+ *     sort?: list<string>
+ * }
+ * @phpstan-type JSONTotalsType array{
+ *     space: array{
+ *         s: list<int>
+ *     },
+ *     columns: list<string>,
+ *     period: array{
+ *         p1: period\Period,
+ *         p2?: period\Period
+ *     },
+ *     options: array{
+ *         ignore_null_properties: bool
+ *     },
+ *     filter?: FormattedFiltersType,
+ *     evo?: Evolution
+ * }
+ * @phpstan-type FormattedFiltersType array{
+ *     metric?: filter\Filter,
+ *     property?: filter\Filter
+ * }
+ * @phpstan-import-type APIResponseType from Client
  */
 class Request implements \JsonSerializable {
     
@@ -30,38 +80,52 @@ class Request implements \JsonSerializable {
     const MAX_PAGES = 20;
     
     private Client $client;
-    /** @var int[] */
+    /** @var list<int> */
     private array $sites;
-    /** @var string[] */
+    /** @var list<string> */
     private array $columns;
     private period\Period $period;
-    private period\Period $cmp_period;
-    private filter\Filter $metric_filter;
-    private filter\Filter $property_filter;
-    private Evolution $evolution;
-    /** @var string[] */
+    private ?period\Period $cmp_period;
+    private ?filter\Filter $metric_filter;
+    private ?filter\Filter $property_filter;
+    private ?Evolution $evolution;
+    /** @var list<string> */
     private array $sort;
     private int $max_results;
     private int $page_num;
     private bool $ignore_null_properties;
     private ResultRowList $result_rows;
-    private \stdClass $rowcount_raw;
-    private \stdClass $total_raw;
+    private object $rowcount_raw;
+    private object $total_raw;
     
     /**
      * Constructs a new request.
      * @param Client $client API-connection.
-     * @param array $params Parameters:
-     * @param int[] $params['sites'] List of site ID's.
-     * @param string[] $params['columns'] List of metrics and properties.
-     * @param \atinternet_php_api\period\Period $params['period'] Analysis period.
-     * @param \atinternet_php_api\period\Period|null $params['cmp_period'] Comparison period (optional)
-     * @param \atinternet_php_api\filter\Filter|null $params['metric_filter'] Filters on metrics (optional)
-     * @param \atinternet_php_api\filter\Filter|null $params['property_filter'] Filters on properties (optional)
-     * @param \atinternet_php_api\Evolution|null $params['evolution'] Not implemented yet (optional)
-     * @param array $params['sort'] List of properties/metrics according to which the results will be sorted (optional).
-     * @param int $params['max_results'] Maximum number of results (default and maximum: 200000 (200k))
-     * @param bool $params['ignore_null_properties'] When set to true, null values will not be included in the results (default false)
+     * @param array{
+     *     sites: list<int>,
+     *     columns: list<string>,
+     *     period: period\Period,
+     *     cmp_period?: ?period\Period,
+     *     metric_filter?: ?filter\Filter,
+     *     property_filter?: ?filter\Filter,
+     *     evolution?: ?Evolution,
+     *     sort?: ?list<string>,
+     *     max_results?: ?int,
+     *     ignore_null_properties?: ?bool
+     * } $params Parameters:
+     * sites: List of site ID's.
+     * columns: List of metrics and properties.
+     * period: Analysis period.
+     * cmp_period: Comparison period (optional)
+     * metric_filter: Filters on metrics (optional)
+     * property_filter: Filters on properties (optional)
+     * evolution: Not implemented yet (optional)
+     * sort: List of properties/metrics according to which the results will be
+     * sorted (optional).
+     * max_results: Maximum number of results (default and maximum: 200000
+     * (200k))
+     * ignore_null_properties: When set to true, null values will not be
+     * included in the results (default false)
      */
     public function __construct( Client $client, $params ) {
         $this->client = $client;
@@ -99,7 +163,10 @@ class Request implements \JsonSerializable {
         }
     }
     
-    public function jsonSerialize(): mixed {
+    /**
+     * @return JSONType
+     */
+    public function jsonSerialize(): array {
         $response = [
             'space' => [
                 's' => $this->sites
@@ -131,8 +198,9 @@ class Request implements \JsonSerializable {
     }
     
     /**
-     * Serialization without some properties for getRowCount and getTotal queries.
-     * @return array
+     * Serialization without some properties for getRowCount and getTotal
+     * queries.
+     * @return JSONTotalsType
      */
     private function jsonSerialize_totals(): array {
         $response = $this->jsonSerialize();
@@ -144,7 +212,7 @@ class Request implements \JsonSerializable {
     
     /**
      * Format the filters for serialization.
-     * @return array
+     * @return FormattedFiltersType
      */
     private function format_filters(): array {
         $response = [];
@@ -158,10 +226,13 @@ class Request implements \JsonSerializable {
     }
     
     /**
-     * Execute a query and return a result object with multiple pages of responses from the API.
-     * Server responses are cached in this object. Call Request::clear() to clear the cache.
-     * Use ATInternet::get_result_rows() to get results without having to deal with paging.
-     * https://developers.atinternet-solutions.com/api-documentation/v3/#getdata
+     * Execute a query and return a result object with multiple pages of
+     * responses from the API.
+     * Server responses are cached in this object. Call Request::clear() to
+     * clear the cache.
+     * Use ATInternet::get_result_rows() to get results without having to deal
+     * with paging.
+     * https://developers.atinternet-solutions.com/piano-analytics/data-api/technical-information/methods#getdata
      * @return ResultPageList
      */
     public function get_result_pages(): ResultPageList {
@@ -169,22 +240,27 @@ class Request implements \JsonSerializable {
     }
     
     /**
-     * Execute a data query. Only one page of results is returned. This page may not include all data.
+     * Execute a data query. Only one page of results is returned. This page may
+     * not include all data.
      * Use ATInternet::get_result_pages() to get a more complete result.
-     * Use ATInternet::get_result_rows() to get results without having to deal with paging.
-     * https://developers.atinternet-solutions.com/api-documentation/v3/#getdata
-     * @return \stdClass
+     * Use ATInternet::get_result_rows() to get results without having to deal
+     * with paging.
+     * https://developers.atinternet-solutions.com/piano-analytics/data-api/technical-information/methods#getdata
+     * @return APIResponseType
+     * @throws APIError
      */
-    public function get_result_page( int $page_num ): \stdClass {
-        // In a previous version pages where cached in the object. This causes memory errors.
+    public function get_result_page( int $page_num ): object {
+        // In a previous version pages where cached in the object. This causes
+        // memory errors.
         $this->page_num = $page_num;
         return $this->client->request('getData', $this);
     }
     
     /**
      * Execute the query and return a result object with all rows from the API.
-     * Server responses are cached in this object. Call Request::clear() to clear the cache.
-     * https://developers.atinternet-solutions.com/api-documentation/v3/#getdata
+     * Server responses are cached in this object. Call Request::clear() to
+     * clear the cache.
+     * https://developers.atinternet-solutions.com/piano-analytics/data-api/technical-information/methods#getdata
      * @return ResultRowList
      */
     public function get_result_rows(): ResultRowList {
@@ -195,45 +271,60 @@ class Request implements \JsonSerializable {
     /**
      * Returns the number of results for a query.
      * Returns the entire response object from the API.
-     * Server responses are cached in this object. Call Request::clear() to clear the cache.
-     * https://developers.atinternet-solutions.com/api-documentation/v3/#getrowcount
-     * @return \stdClass
+     * Server responses are cached in this object. Call Request::clear() to
+     * clear the cache.
+     * https://developers.atinternet-solutions.com/piano-analytics/data-api/technical-information/methods#getrowcount
+     * @return APIResponseType
+     * @throws APIError
      */
-    public function get_rowcount_raw(): \stdClass {
+    public function get_rowcount_raw(): object {
         $this->rowcount_raw ??= $this->client->request('getRowCount', $this->jsonSerialize_totals());
         return $this->rowcount_raw;
     }
     
     /**
      * Returns the number of results for a query. max_results is ignored.
-     * Server responses are cached in this object. Call Request::clear() to clear the cache.
-     * https://developers.atinternet-solutions.com/api-documentation/v3/#getrowcount
-     * @return int
+     * Server responses are cached in this object. Call Request::clear() to
+     * clear the cache.
+     * https://developers.atinternet-solutions.com/piano-analytics/data-api/technical-information/methods#getrowcount
+     * @throws APIError
      */
     public function get_rowcount(): int {
-        return $this->get_rowcount_raw()->RowCounts[0]->RowCount;
+        $rowcount_raw = $this->get_rowcount_raw();
+        if ( !isset($rowcount_raw->RowCounts) ) {
+            throw new ATInternetError('Key RowCounts missing in response');
+        }
+        return $rowcount_raw->RowCounts[0]->RowCount;
     }
     
     /**
      * Get the totals for each metric in a request. max_results is ignored.
      * Returns the entire response object from the API.
-     * Server responses are cached in this object. Call Request::clear() to clear the cache.
-     * https://developers.atinternet-solutions.com/api-documentation/v3/#gettotal
-     * @return \stdClass
+     * Server responses are cached in this object. Call Request::clear() to
+     * clear the cache.
+     * https://developers.atinternet-solutions.com/piano-analytics/data-api/technical-information/methods#gettotal
+     * @return APIResponseType
+     * @throws APIError
      */
-    public function get_total_raw(): \stdClass {
+    public function get_total_raw(): object {
         $this->total_raw ??= $this->client->request('getTotal', $this->jsonSerialize_totals());
         return $this->total_raw;
     }
     
     /**
      * Get the totals for each metric in a request.
-     * Server responses are cached in this object. Call Request::clear() to clear the cache.
-     * https://developers.atinternet-solutions.com/api-documentation/v3/#gettotal
-     * @return \stdClass
+     * Server responses are cached in this object. Call Request::clear() to
+     * clear the cache.
+     * https://developers.atinternet-solutions.com/piano-analytics/data-api/technical-information/methods#gettotal
+     * @return object
+     * @throws APIError
      */
-    public function get_total(): \stdClass {
-        $data = $this->get_total_raw()->DataFeed->Rows[0];
+    public function get_total(): object {
+        $total_raw = $this->get_total_raw();
+        if ( !isset($total_raw->DataFeed) ) {
+            throw new ATInternetError('Key DataFeed missing in response');
+        }
+        $data = $total_raw->DataFeed->Rows[0];
         foreach ( $data as $key => $value ) {
             if ( $value === '-' ) {
                 unset($data->$key);
@@ -244,16 +335,15 @@ class Request implements \JsonSerializable {
     
     /**
      * Get the maximum number of results for the current page.
-     * @return int
      */
     private function get_max_page_results(): int {
         return max(0,min(self::MAX_PAGE_RESULTS, $this->max_results-self::MAX_PAGE_RESULTS*($this->page_num-1)));
     }
     
     /**
-     * Returns true if the current page is the page after the last page that contains results.
+     * Returns true if the current page is the page after the last page that
+     * contains results.
      * @param int $page_num The current page.
-     * @return bool
      */
     public function is_after_last_page( int $page_num ): bool {
         $this->page_num = $page_num;
